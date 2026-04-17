@@ -9,7 +9,8 @@ import {
   YAxis,
   CartesianGrid,
 } from 'recharts'
-import type { ChartItem, Transaction } from '../../types/transaction'
+import type { ChartItem } from '../../types/transaction'
+import { CATEGORY_COLORS } from '../../constants/categories'
 
 type MonthlyItem = {
   name: string
@@ -25,17 +26,6 @@ type Props = {
   shortCurrency: (value: number) => string
 }
 
-const PIE_COLORS = [
-  '#3b82f6',
-  '#06b6d4',
-  '#8b5cf6',
-  '#10b981',
-  '#f59e0b',
-  '#ef4444',
-  '#ec4899',
-  '#6366f1',
-]
-
 function BudgetCharts({
   chartData,
   monthlyData,
@@ -44,7 +34,10 @@ function BudgetCharts({
   shortCurrency,
 }: Props) {
   return (
-    <div className="grid grid-cols-1 gap-6 2xl:grid-cols-2">
+    <div
+      id="budget-charts-export"
+      className="grid grid-cols-1 gap-6 2xl:grid-cols-2"
+    >
       <div className="rounded-[28px] border border-white/10 bg-white/5 p-6 shadow-2xl shadow-black/30">
         <div className="mb-4 flex items-center justify-between">
           <div>
@@ -81,10 +74,10 @@ function BudgetCharts({
                   stroke="rgba(255,255,255,0.08)"
                   strokeWidth={2}
                 >
-                  {chartData.map((_, index) => (
+                  {chartData.map((item) => (
                     <Cell
-                      key={`cell-${index}`}
-                      fill={PIE_COLORS[index % PIE_COLORS.length]}
+                      key={item.name}
+                      fill={CATEGORY_COLORS[item.name] || '#a1a1aa'}
                     />
                   ))}
                 </Pie>
@@ -102,7 +95,7 @@ function BudgetCharts({
             </div>
 
             <div className="space-y-3">
-              {chartData.map((item, index) => (
+              {chartData.map((item) => (
                 <div
                   key={item.name}
                   className="flex items-center justify-between rounded-2xl border border-white/5 bg-zinc-950/50 px-4 py-3"
@@ -111,7 +104,7 @@ function BudgetCharts({
                     <span
                       className="h-3 w-3 rounded-full"
                       style={{
-                        backgroundColor: PIE_COLORS[index % PIE_COLORS.length],
+                        backgroundColor: CATEGORY_COLORS[item.name] || '#a1a1aa',
                       }}
                     />
                     <div>

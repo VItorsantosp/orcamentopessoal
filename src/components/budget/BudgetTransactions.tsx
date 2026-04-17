@@ -1,3 +1,4 @@
+import { CATEGORY_COLORS } from '../../constants/categories'
 import type { Transaction } from '../../types/transaction'
 
 type Props = {
@@ -88,8 +89,16 @@ function BudgetTransactions({
                         {transaction.description}
                       </div>
 
-                      <div className="text-zinc-400">{transaction.category}</div>
-
+                      <div className="flex items-center gap-2 text-zinc-400">
+  <span
+    className="h-2.5 w-2.5 rounded-full"
+    style={{
+      backgroundColor:
+        CATEGORY_COLORS[transaction.category] || '#a1a1aa',
+    }}
+  />
+  {transaction.category}
+</div>
                       <div className="text-zinc-500">
                         {new Date(transaction.date).toLocaleDateString('pt-BR')}
                       </div>
@@ -149,9 +158,16 @@ function BudgetTransactions({
                       <h4 className="mt-3 font-medium text-white">
                         {transaction.description}
                       </h4>
-                      <p className="mt-1 text-sm text-zinc-400">
-                        {transaction.category}
-                      </p>
+                      <div className="mt-1 flex items-center gap-2 text-sm text-zinc-400">
+  <span
+    className="h-2.5 w-2.5 rounded-full"
+    style={{
+      backgroundColor:
+        CATEGORY_COLORS[transaction.category] || '#a1a1aa',
+    }}
+  />
+  {transaction.category}
+</div>
                     </div>
 
                     <div className="text-right">

@@ -1,4 +1,5 @@
 import type { FormState } from '../../types/transaction'
+import { CATEGORIES } from '../../constants/categories'
 
 type Props = {
   form: FormState
@@ -53,13 +54,18 @@ function BudgetForm({ form, setForm, onSubmit, editing, onCancel }: Props) {
           className="w-full rounded-2xl border border-white/10 bg-zinc-950 px-4 py-3 text-white"
         />
 
-        <div className="grid grid-cols-2 gap-4">
-          <input
-            value={form.category}
-            onChange={(e) => setForm({ ...form, category: e.target.value })}
-            placeholder="Categoria"
-            className="rounded-2xl border border-white/10 bg-zinc-950 px-4 py-3 text-white"
-          />
+          <select
+  value={form.category}
+  onChange={(e) => setForm({ ...form, category: e.target.value })}
+  className="rounded-2xl border border-white/10 bg-zinc-950 px-4 py-3 text-white"
+>
+  <option value="">Selecione a categoria</option>
+  {CATEGORIES.map((category) => (
+    <option key={category} value={category}>
+      {category}
+    </option>
+  ))}
+</select>
 
           <input
             type="number"
@@ -68,7 +74,6 @@ function BudgetForm({ form, setForm, onSubmit, editing, onCancel }: Props) {
             placeholder="Valor"
             className="rounded-2xl border border-white/10 bg-zinc-950 px-4 py-3 text-white"
           />
-        </div>
 
         <input
           type="date"

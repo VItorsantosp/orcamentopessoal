@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import toast from 'react-hot-toast'
 import { db } from '../firebase'
 import { collection, onSnapshot, query, where } from 'firebase/firestore'
 import type { User } from 'firebase/auth'
@@ -60,11 +61,33 @@ export function useTransactions({ user }: UseTransactionsProps) {
     return () => unsubscribe()
   }, [user.uid])
 
+  const availableMonths = useMemo(() => {
+    const monthsSet = new Set<string>()
+
+    transactions.forEach((t) => {
+      monthsSet.add(t.date.slice(0, 7))
+    })
+
+    return Array.from(monthsSet).sort().reverse()
+  }, [transactions])
+
   const monthTransactions = useMemo(() => {
     return transactions.filter((transaction) =>
       transaction.date.startsWith(selectedMonth)
     )
   }, [transactions, selectedMonth])
+
+  const previousMonth = useMemo(() => {
+    const [year, month] = selectedMonth.split('-').map(Number)
+    const date = new Date(year, month - 2, 1)
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+  }, [selectedMonth])
+
+  const previousMonthTransactions = useMemo(() => {
+    return transactions.filter((transaction) =>
+      transaction.date.startsWith(previousMonth)
+    )
+  }, [transactions, previousMonth])
 
   const summary = useMemo(() => {
     const income = monthTransactions
@@ -81,6 +104,22 @@ export function useTransactions({ user }: UseTransactionsProps) {
       balance: income - expense,
     }
   }, [monthTransactions])
+
+  const previousSummary = useMemo(() => {
+    const income = previousMonthTransactions
+      .filter((t) => t.type === 'income')
+      .reduce((acc, t) => acc + t.amount, 0)
+
+    const expense = previousMonthTransactions
+      .filter((t) => t.type === 'expense')
+      .reduce((acc, t) => acc + t.amount, 0)
+
+    return {
+      income,
+      expense,
+      balance: income - expense,
+    }
+  }, [previousMonthTransactions])
 
   const chartData = useMemo<ChartItem[]>(() => {
     const totals: Record<string, number> = {}
@@ -127,15 +166,89 @@ export function useTransactions({ user }: UseTransactionsProps) {
     return monthTransactions.filter((t) => t.type === filter)
   }, [monthTransactions, filter])
 
-  const availableMonths = useMemo(() => {
-  const monthsSet = new Set<string>()
+  const insights = useMemo(() => {
+    const topExpense = chartData[0]
 
-  transactions.forEach((t) => {
-    monthsSet.add(t.date.slice(0, 7))
-  })
+    const expenseDiff = summary.expense - previousSummary.expense
+    const incomeDiff = summary.income - previousSummary.income
 
-  return Array.from(monthsSet).sort().reverse()
-}, [transactions])
+    const items: Array<{
+      title: string
+      description: string
+      tone: 'blue' | 'emerald' | 'rose'
+    }> = []
+
+    if (topExpense) {
+      items.push({
+        title: 'Maior categoria',
+        description: `${topExpense.name} lidera seus gastos no mês com ${new Intl.NumberFormat(
+          'pt-BR',
+          { style: 'currency', currency: 'BRL' }
+        ).format(topExpense.value)}.`,
+        tone: 'blue',
+      })
+    } else {
+      items.push({
+        title: 'Sem despesas no mês',
+        description: 'Você ainda não registrou despesas no período selecionado.',
+        tone: 'blue',
+      })
+    }
+
+    if (expenseDiff > 0) {
+      items.push({
+        title: 'Despesas subiram',
+        description: `Você gastou ${new Intl.NumberFormat('pt-BR', {
+          style: 'currency',
+          currency: 'BRL',
+        }).format(expenseDiff)} a mais que no mês anterior.`,
+        tone: 'rose',
+      })
+    } else if (expenseDiff < 0) {
+      items.push({
+        title: 'Despesas caíram',
+        description: `Você reduziu ${new Intl.NumberFormat('pt-BR', {
+          style: 'currency',
+          currency: 'BRL',
+        }).format(Math.abs(expenseDiff))} em relação ao mês anterior.`,
+        tone: 'emerald',
+      })
+    } else {
+      items.push({
+        title: 'Despesas estáveis',
+        description: 'Seu nível de gastos ficou praticamente igual ao mês anterior.',
+        tone: 'blue',
+      })
+    }
+
+    if (incomeDiff > 0) {
+      items.push({
+        title: 'Receita em alta',
+        description: `Suas entradas cresceram ${new Intl.NumberFormat('pt-BR', {
+          style: 'currency',
+          currency: 'BRL',
+        }).format(incomeDiff)} neste mês.`,
+        tone: 'emerald',
+      })
+    } else if (incomeDiff < 0) {
+      items.push({
+        title: 'Receita menor',
+        description: `Suas entradas ficaram ${new Intl.NumberFormat('pt-BR', {
+          style: 'currency',
+          currency: 'BRL',
+        }).format(Math.abs(incomeDiff))} abaixo do mês anterior.`,
+        tone: 'rose',
+      })
+    } else {
+      items.push({
+        title: 'Receita estável',
+        description: 'Suas entradas ficaram no mesmo nível do mês anterior.',
+        tone: 'blue',
+      })
+    }
+
+    return items
+  }, [chartData, summary.expense, summary.income, previousSummary.expense, previousSummary.income])
 
   const startEdit = (transaction: Transaction) => {
     setForm({
@@ -168,43 +281,50 @@ export function useTransactions({ user }: UseTransactionsProps) {
     try {
       if (editingId) {
         await editTransaction(editingId, form)
+        toast.success('Lançamento atualizado')
       } else {
         await createTransaction(user.uid, form)
+        toast.success('Lançamento criado')
       }
 
       resetForm()
     } catch (error) {
       console.error('Erro ao salvar:', error)
+      toast.error('Erro ao salvar lançamento')
     }
   }
 
   const removeTransaction = async (id: string) => {
     try {
       await deleteTransactionService(id)
+      toast.success('Lançamento removido')
     } catch (error) {
       console.error('Erro ao deletar:', error)
+      toast.error('Erro ao deletar')
     }
   }
 
   return {
-  transactions,
-  monthTransactions,
-  filteredTransactions,
-  filter,
-  setFilter,
-  selectedMonth,
-  setSelectedMonth,
-  availableMonths,
-  loading,
-  form,
-  setForm,
-  editingId,
-  summary,
-  chartData,
-  monthlyData,
-  startEdit,
-  resetForm,
-  addTransaction,
-  removeTransaction,
-}
+    transactions,
+    monthTransactions,
+    filteredTransactions,
+    filter,
+    setFilter,
+    selectedMonth,
+    setSelectedMonth,
+    availableMonths,
+    loading,
+    form,
+    setForm,
+    editingId,
+    summary,
+    previousSummary,
+    chartData,
+    monthlyData,
+    insights,
+    startEdit,
+    resetForm,
+    addTransaction,
+    removeTransaction,
+  }
 }
