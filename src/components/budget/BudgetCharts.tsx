@@ -83,7 +83,7 @@ function BudgetCharts({
                 </Pie>
 
                 <Tooltip
-                  formatter={(value: number) => currency(value)}
+                  formatter={(value) => currency(Number(value ?? 0))}
                   contentStyle={{
                     backgroundColor: '#111827',
                     border: '1px solid rgba(255,255,255,0.08)',
@@ -156,7 +156,7 @@ function BudgetCharts({
                 tickFormatter={(value) => shortCurrency(Number(value))}
               />
               <Tooltip
-                formatter={(value: number) => currency(value)}
+                formatter={(value) => currency(Number(value ?? 0))}
                 contentStyle={{
                   backgroundColor: '#111827',
                   border: '1px solid rgba(255,255,255,0.08)',
